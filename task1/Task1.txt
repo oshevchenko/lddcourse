@@ -1,0 +1,13 @@
+1. Get Linux Kernel source code for TP-Link TL-MR3020
+https://wiki.openwrt.org/toh/tp-link/tl-mr3020
+
+2. Get examples for the book Linux Device Drivers 3.
+https://github.com/duxing2007/ldd3-examples-3.x
+
+3. Add “misc-modules” to TP-Link TL-MR3020’s kernel drivers directory “src/drivers”.
+
+4. Modify Kernel build system so that after running commands
+make kernel_menuconfig
+It would be possible either to add drivers from misc-modules to vmlinux or build them as separate modules.
+
+
