@@ -1,0 +1,51 @@
+#
+# Misc-modules configuration
+#
+
+menuconfig MISC_MODULES
+	tristate "Misc-Modules LDD3 support"
+	help
+	  Examples from book LDD3
+
+if MISC_MODULES
+
+config COMPLETE
+	tristate "Complete module"
+	help
+	  the writers awake the readers
+
+config FAULTY
+	tristate "Faulty module"
+	help
+	  Generates oops when read
+
+config HELLO
+	tristate "Hello module"
+    help
+      Show hello
+
+config HELLOP
+	tristate "Hellop module"
+
+config JIQ
+	tristate "Jiq module"
+
+config JIT
+	tristate "Jit module"
+
+config KDATAALIGN
+	tristate "KDataAlign module"
+
+config KDATASIZE
+	tristate "KDataSize module"
+
+config SEQ
+	tristate "Seq module"
+
+config SILLY
+	tristate "Silly module"
+
+config SLEEP
+	tristate "Sleep module"
+
+endif
