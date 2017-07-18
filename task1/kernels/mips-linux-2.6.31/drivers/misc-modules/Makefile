@@ -1,0 +1,11 @@
+obj-$(CONFIG_MISC_COMPLETE)		+= complete.o
+obj-$(CONFIG_MISC_FAULTY)		+= faulty.o
+obj-$(CONFIG_MISC_HELLO)		+= hello.o
+obj-$(CONFIG_MISC_HELLOP)		+= hellop.o
+obj-$(CONFIG_MISC_JIQ)		+= jiq.o
+obj-$(CONFIG_MISC_JIT)		+= jit.o
+obj-$(CONFIG_MISC_KDATAALIGN)		+= kdataalign.o
+obj-$(CONFIG_MISC_KDATASIZE)		+= kdatasize.o
+obj-$(CONFIG_MISC_SEQ)		+= seq.o
+obj-$(CONFIG_MISC_SILLY)		+= silly.o
+obj-$(CONFIG_MISC_SLEEPY)		+= sleepy.o

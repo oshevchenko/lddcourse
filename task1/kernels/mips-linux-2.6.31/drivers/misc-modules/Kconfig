@@ -1,0 +1,80 @@
+#
+# Misc modules
+#
+
+menuconfig MISC_MODULES
+	bool "Misc modules"
+	default y
+	---help---
+	  Say Y here to get to see options for misc modules.
+	  If you say N, all options in this submenu will be skipped and disabled.
+
+if MISC_MODULES
+
+config MISC_COMPLETE
+	bool "Misc-modules complete"
+	default y
+	help
+	  Misc-modules complete
+
+config MISC_FAULTY
+	bool "Misc-modules faulty"
+	default y
+	help
+	  Misc-modules faulty
+	  
+config MISC_HELLO
+	bool "Misc-modules hello"
+	default y
+	help
+	  Misc-modules hello
+	  
+config MISC_HELLOP
+	bool "Misc-modules hellop"
+	default y
+	help
+	  Misc-modules hellop
+	  
+config MISC_JIQ
+	bool "Misc-modules jiq"
+	default y
+	help
+	  Misc-modules jiq
+	  
+config MISC_JIT
+	bool "Misc-modules jit"
+	default y
+	help
+	  Misc-modules jit
+	  
+config MISC_KDATAALIGN
+	bool "Misc-modules kdataalign"
+	default y
+	help
+	  Misc-modules kdataalign
+	  
+config MISC_KDATASIZE
+	bool "Misc-modules kdatasize"
+	default y
+	help
+	  Misc-modules kdatasize
+	  
+config MISC_SEQ
+	bool "Misc-modules seq"
+	default y
+	help
+	  Misc-modules seq
+	  
+config MISC_SILLY
+	bool "Misc-modules silly"
+	default y
+	help
+	  Misc-modules silly
+	  
+config MISC_SLEEPY
+	bool "Misc-modules sleepy"
+	default y
+	help
+	  Misc-modules sleepy
+	  
+endif # MISC_MODULES
