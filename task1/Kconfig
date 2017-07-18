@@ -1,0 +1,21 @@
+menuconfig MISCMODULE
+    bool "User defined Misc module support"
+    ---help---
+      User defined Misc module support 
+      Say Y here to get to see options for misc modules.
+      This option alone does not add any kernel code.
+
+      If you say N, all options in this submenu will be skipped and disabled.
+
+      If unsure, say N.
+
+if MISCMODULE
+config MISC_MOD_HELLO
+    tristate "Hello world misc module"
+    ---help---
+      Print hello in syslog when loaded
+          Y - kernel build
+          M - build to loadable module
+      If unsure, say N.
+
+endif # MISCMODULE
