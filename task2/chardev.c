@@ -3,9 +3,10 @@
  *  you've read from the dev file
  */
 
+#include <linux/fs.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/fs.h>
+#include <linux/proc_fs.h>
 #include <asm/uaccess.h>	/* for put_user */
 
 /*  
@@ -18,11 +19,12 @@ static int device_release(struct inode *, struct file *);
 static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 
+#define BUF_LEN 80				/* Max length of the message from the device */
+#define DEVICE_NAME "chardev"	/* Dev name as it appears in /proc/devices   */
+#define NUM_BASE_10 10          /* Number base to use during convert str to l*/
+#define PROC_FS_NAME "coolchardev"/* Name for /proc/                         */
 #define SUCCESS 0
 #define UNSUCCESS -1
-#define DEVICE_NAME "chardev"	/* Dev name as it appears in /proc/devices   */
-#define BUF_LEN 80				/* Max length of the message from the device */
-#define NUM_BASE_10 10          /* Number base to use during convert str to l*/
 
 /* 
  * Global variables are declared as static, so are global within the file. 
@@ -35,11 +37,19 @@ static char msg[BUF_LEN];		/* The msg the device will give when asked */
 static char *msg_Ptr;
 
 static struct file_operations fops = {
+	.owner = THIS_MODULE,
 	.read = device_read,
 	.write = device_write,
 	.open = device_open,
 	.release = device_release
 };
+
+static struct file_operations proc_fs_fops = {
+	.owner = THIS_MODULE,
+	.read = device_read
+};
+
+struct proc_dir_entry *proc_file_entry;
 
 /*
  * This function is called when the module is loaded
@@ -60,6 +70,16 @@ int init_module(void)
 	printk(KERN_INFO "the device file.\n");
 	printk(KERN_INFO "Remove the device file and module when done.\n");
 
+	proc_file_entry = proc_create(PROC_FS_NAME, 0644, NULL, &proc_fs_fops);
+	
+	if (proc_file_entry == NULL) {
+		printk(KERN_ALERT "Error: Could not initialize /proc/%s\n",
+		       PROC_FS_NAME);
+		return -ENOMEM;
+	}
+
+	printk(KERN_INFO "/proc/%s created\n", PROC_FS_NAME);
+
 	return SUCCESS;
 }
 
@@ -73,6 +93,8 @@ void cleanup_module(void)
 	 */
 	unregister_chrdev(Major, DEVICE_NAME);
 	printk(KERN_INFO "Device was removed.\n");
+	remove_proc_entry(PROC_FS_NAME, NULL);
+	printk(KERN_INFO "/proc/%s removed\n", PROC_FS_NAME);
 }
 
 /*
@@ -132,8 +154,11 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 	 * If we're at the end of the message, 
 	 * return 0 signifying end of file 
 	 */
-	if (*msg_Ptr == 0)
+	if (*msg_Ptr == 0) {
+
+		msg_Ptr = msg;          /* Return ptr po start pos   */
 		return 0;
+	}
 
 	/* 
 	 * Actually put the data into the buffer 
