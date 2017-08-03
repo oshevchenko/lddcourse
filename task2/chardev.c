@@ -21,6 +21,7 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 
 #define BUF_LEN 80				/* Max length of the message from the device */
 #define DEVICE_NAME "chardev"	/* Dev name as it appears in /proc/devices   */
+#define MAX_MINOR 4             /* Maximum files in /dev/                    */
 #define NUM_BASE_10 10          /* Number base to use during convert str to l*/
 #define PROC_FS_NAME "coolchardev"/* Name for /proc/                         */
 #define SUCCESS 0
@@ -30,11 +31,11 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
  * Global variables are declared as static, so are global within the file. 
  */
 
-static int Major;				/* Major number assigned to our device driver */
-static int Device_Open = 0;		/* Is device open?  
-				 				 * Used to prevent multiple access to device */
-static char msg[BUF_LEN];		/* The msg the device will give when asked */
-static char *msg_Ptr;
+static int Major;					/* Major number assigned to our device driver*/
+static int Device_Open = 0;			/* Is device open?  
+				 				     * Used to prevent multiple access to device */
+static char msg[MAX_MINOR][BUF_LEN];/* The msg the device will give when asked   */
+static char *msg_Ptr[MAX_MINOR];
 
 static struct file_operations fops = {
 	.owner = THIS_MODULE,
@@ -107,14 +108,17 @@ void cleanup_module(void)
  */
 static int device_open(struct inode *inode, struct file *file)
 {
-	//static int counter = 0;
+	static int minor[MAX_MINOR] = {0, 1, 2, 3};
+	int get_minor = 0;
 
-	if (Device_Open)
+	if (Device_Open == MAX_MINOR)
 		return -EBUSY;
 
+	get_minor = MINOR(inode->i_rdev);
+	file->private_data = minor + get_minor;
+
 	Device_Open++;
-	/*sprintf(msg, "I already told you %d times Hello world!\n", counter++);
-	msg_Ptr = msg;*/
+
 	try_module_get(THIS_MODULE);
 
 	return SUCCESS;
@@ -145,25 +149,25 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 			   size_t length,	/* length of the buffer     */
 			   loff_t * offset)
 {
-	/*
-	 * Number of bytes actually written to the buffer 
-	 */
-	int bytes_read = 0;
+	int bytes_read = 0;         // Num of bytes actually written to the buf 
+	int *minor = 0;                 /* contains minor value      */
+
+	minor = filp->private_data;     // get minor
 
 	/*
 	 * If we're at the end of the message, 
 	 * return 0 signifying end of file 
 	 */
-	if (*msg_Ptr == 0) {
+	if (*msg_Ptr[*minor] == 0) {
 
-		msg_Ptr = msg;          /* Return ptr po start pos   */
+		msg_Ptr[*minor] = msg[*minor];          /* Return ptr po start pos   */
 		return 0;
 	}
 
 	/* 
 	 * Actually put the data into the buffer 
 	 */
-	while (length && *msg_Ptr) {
+	while (length && *msg_Ptr[*minor]) {
 
 		/* 
 		 * The buffer is in the user data segment, not the kernel 
@@ -171,7 +175,7 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 		 * put_user which copies data from the kernel data segment to
 		 * the user data segment. 
 		 */
-		put_user(*(msg_Ptr++), buffer++);
+		put_user(*(msg_Ptr[*minor]++), buffer++);
 
 		length--;
 		bytes_read++;
@@ -189,23 +193,23 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 static ssize_t
 device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 {
+
+	int *i = 0;                 /* contains minor value      */
 	int bytes_written = 0;		/* bytes write to the buffer */
 	int convert_result = 0;     /* result of convertion      */
-	long rec_number = 0;        /* received number from user */
+	long converted_num = 0;      // result of convertion from str
 
-	msg_Ptr = msg;
+	i = filp->private_data;     // get minor
+	msg_Ptr[*i] = msg[*i];      // get ptr to minor related data
 
-	while (len && (bytes_written < (BUF_LEN - 1)))
-	{
-		get_user(*(msg_Ptr++), buff++);
-		len--;
-		bytes_written++;
+
+	if (len > BUF_LEN) {
+		return UNSUCCESS;
 	}
 
-	*msg_Ptr = 0;				/* Set terminator			 */
-	msg_Ptr = msg;              /* Return ptr po start pos   */
+	copy_from_user(msg_Ptr[*i], buff, len);
 
-	convert_result = kstrtol(msg, NUM_BASE_10, &rec_number);
+	convert_result = kstrtol(msg[*i], NUM_BASE_10, &converted_num);
 
 	if (convert_result == -ERANGE) {
 		printk(KERN_INFO "Entered number is too big or too small.\n");
@@ -214,6 +218,9 @@ device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 	else if (convert_result == -EINVAL) {
 		printk(KERN_INFO "Couldn't convert your number. Try again.\n");
 		bytes_written = UNSUCCESS;
+	}
+	else {
+		bytes_written = len;
 	}
 
 	return bytes_written;
