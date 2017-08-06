@@ -27,6 +27,8 @@ static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
 static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
+static int proc_fs_open(struct inode * inode, struct file * file);
+static int proc_fs_release(struct inode * inode, struct file * file);
 static ssize_t proc_fs_read(struct file *, char *, size_t, loff_t *);
 
 #define BUF_LEN 40				/* Max length of the message from the device */
@@ -46,21 +48,23 @@ static ssize_t proc_fs_read(struct file *, char *, size_t, loff_t *);
 static int Major;					/* Major number assigned to our device driver*/
 static int Device_Open = 0;			/* Is device open?  
 				 				     * Used to prevent multiple access to device */
-static char msg[MAX_MINOR][BUF_LEN] = {};/* The msg the device will give when asked   */
+static char msg[MAX_MINOR][BUF_LEN];/* The msg the device will give when asked   */
 static char *msg_Ptr[MAX_MINOR];    // temp ptr for device read/write functions
 static char *msg_ptr_proc_fs;       // for proc fs functions
 
 static struct file_operations fops = {
 	.owner = THIS_MODULE,
-	.read = device_read,
-	.write = device_write,
 	.open = device_open,
-	.release = device_release
+	.read = device_read,
+	.release = device_release,
+	.write = device_write,
 };
 
 static struct file_operations proc_fs_fops = {
 	.owner = THIS_MODULE,
-	.read = proc_fs_read
+	.open = proc_fs_open,
+	.read = proc_fs_read,
+	.release = proc_fs_release
 };
 
 struct proc_dir_entry *proc_file_entry;
@@ -110,10 +114,6 @@ void cleanup_module(void)
 	remove_proc_entry(PROC_FS_NAME, NULL);
 	printk(KERN_INFO "/proc/%s removed\n", PROC_FS_NAME);
 }
-
-/*
- * Methods
- */
 
 /* 
  * Called when a process tries to open the device file, like
@@ -234,22 +234,35 @@ device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 	else {
 		bytes_written = len;
 	}
+	// At the end write terminator
 	*(msg_Ptr[minor] + len) = 0;
 
 	return bytes_written;
 }
 
+static int proc_fs_open(struct inode * inode, struct file * file)
+{
+	printk(KERN_INFO "Open a proc file %s\n", PROC_FS_NAME);
+	try_module_get(THIS_MODULE);
+	return 0;
+}
+
+static int proc_fs_release(struct inode * inode, struct file * file)
+{
+	printk(KERN_INFO "Close a proc file %s\n", PROC_FS_NAME);
+	module_put(THIS_MODULE);
+	return 0;
+}
+
 /* 
  * Called when /proc/ file is read.
  */
-static ssize_t proc_fs_read(struct file *filp,	/* see include/linux/fs.h   */
-			   char *buffer,					/* buffer to fill with data */
-			   size_t length,					/* length of the buffer     */
-			   loff_t * offset)
+static ssize_t proc_fs_read(struct file *filp, char *buffer,
+			   size_t length, loff_t * offset)
 {
 	static u_int32_t finished = NO;  			// indicates if data read finished
 	u_int8_t bytes_read = 0;
-	u_int8_t i = 0;             				// array index
+	u_int8_t i = 0;             				// loop index
 	
 	if (finished == YES) {
 		finished = NO;
@@ -272,9 +285,6 @@ static ssize_t proc_fs_read(struct file *filp,	/* see include/linux/fs.h   */
 		}
 		while (*msg_ptr_proc_fs);
 	}
-
-	/* 
-	 * Most read functions return the number of bytes put into the buffer
-	 */
+	
 	return bytes_read;
 }
