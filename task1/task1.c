@@ -15,7 +15,7 @@ static int my_module_init(void)
     buf[i] = 0;
 
     printk(KERN_DEFAULT "task1: Hello world Kernel%s\n", buf);
-	return 0;
+    return 0;
 }
 
 static void my_module_exit(void)
