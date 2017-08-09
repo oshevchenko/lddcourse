@@ -54,8 +54,7 @@ ssize_t chardev_read(struct file *filp, char *buffer,
 	struct chardev_dev *dev = filp->private_data;
 
 	if (mutex_lock_interruptible(&dev->mutex)) {
-		bytes_read = -ERESTARTSYS;
-		goto out;
+		return -ERESTARTSYS;
 	}
 
 	bytes_left = dev->size - *offset;
@@ -73,7 +72,6 @@ ssize_t chardev_read(struct file *filp, char *buffer,
 	copy_to_user(buffer, dev->data + *offset, bytes_read);
 	*offset += bytes_read;
 
-out:
 	mutex_unlock(&dev->mutex);
 
 	return bytes_read;
@@ -90,8 +88,7 @@ ssize_t chardev_write(struct file *filp, const char *buffer,
 	struct chardev_dev *dev = filp->private_data;
 
 	if (mutex_lock_interruptible(&dev->mutex)) {
-		bytes_written = -ERESTARTSYS;
-		goto out;
+		return -ERESTARTSYS;
 	}
 
 	if (length + *offset >= (MAX_BUF_SIZE - 1)) {
