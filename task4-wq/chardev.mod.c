@@ -25,16 +25,16 @@ __attribute__((section("__versions"))) = {
 	{ 0xbc78ef3c, __VMLINUX_SYMBOL_STR(seq_lseek) },
 	{ 0x6bc3fbc0, __VMLINUX_SYMBOL_STR(__unregister_chrdev) },
 	{ 0x8c03d20c, __VMLINUX_SYMBOL_STR(destroy_workqueue) },
-	{ 0x43a53735, __VMLINUX_SYMBOL_STR(__alloc_workqueue_key) },
 	{ 0xacc9c85e, __VMLINUX_SYMBOL_STR(remove_proc_entry) },
-	{ 0x9d378f70, __VMLINUX_SYMBOL_STR(queue_delayed_work_on) },
 	{ 0x4752cef8, __VMLINUX_SYMBOL_STR(proc_create_data) },
 	{ 0x50f0a941, __VMLINUX_SYMBOL_STR(__register_chrdev) },
 	{ 0xa6bbd805, __VMLINUX_SYMBOL_STR(__wake_up) },
 	{ 0x4f8b5ddb, __VMLINUX_SYMBOL_STR(_copy_to_user) },
+	{ 0x43a53735, __VMLINUX_SYMBOL_STR(__alloc_workqueue_key) },
 	{ 0x167e7f9d, __VMLINUX_SYMBOL_STR(__get_user_1) },
-	{ 0xd2b09ce5, __VMLINUX_SYMBOL_STR(__kmalloc) },
+	{ 0x9d378f70, __VMLINUX_SYMBOL_STR(queue_delayed_work_on) },
 	{ 0xfb578fc5, __VMLINUX_SYMBOL_STR(memset) },
+	{ 0xd2b09ce5, __VMLINUX_SYMBOL_STR(__kmalloc) },
 	{ 0x91715312, __VMLINUX_SYMBOL_STR(sprintf) },
 	{ 0x26278b7b, __VMLINUX_SYMBOL_STR(mutex_lock_interruptible) },
 	{ 0x1afab522, __VMLINUX_SYMBOL_STR(mutex_unlock) },
@@ -50,4 +50,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "BF3BA3009FE39D062E0E863");
+MODULE_INFO(srcversion, "88BF02EB0878FEB0075D54D");

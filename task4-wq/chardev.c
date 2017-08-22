@@ -14,7 +14,6 @@
 #include <linux/wait.h>
 #include <linux/poll.h>
 #include <linux/slab.h>
-
 #include <linux/workqueue.h>
 #include <asm/atomic.h>
 
@@ -89,6 +88,11 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 static unsigned int chardev_poll(struct file *file, poll_table *wait);
 static DEFINE_MUTEX(mutex);
 //static struct mutex chardev_lock[MAX_MINORS];
+
+int find_min(void);
+int find_max(void);
+int find_avg(void);
+
 
 ssize_t procfile_read(struct file *filePointer,char *buffer,
                       size_t buffer_length, loff_t * offset);
@@ -176,9 +180,14 @@ static struct seq_operations my_seq_ops = {
 
 static unsigned int chardev_poll(struct file *file, poll_table *wait)
 {
+    pr_info("ready=%d \n", cdata.ready);
     poll_wait(file, &chardev_wait, wait);
-    if (cdata.ready)
+    if (cdata.ready==1)
+    {
+     pr_info("chardev pollwait pollin\n");
         return POLLIN | POLLRDNORM;
+    }
+    pr_info("chardev pollwait\n");
     return 0;
 }
 
@@ -199,10 +208,13 @@ chardev_work_min_handler(struct work_struct *w)
         struct cdev_data *cdev_data_ptr = &cdata;
         
         pr_info("chardev min work %u jiffies\n", (unsigned)onesec);
+        //min = find_min();
+        cdev_data_ptr->min = find_min();
         pr_info("min=%d \n", cdev_data_ptr->min);
         if(atomic_dec_and_test(&cdev_data_ptr->refcount)){
         	pr_info("chardev min work last %u jiffies\n", (unsigned)onesec);
             cdev_data_ptr->ready = 1;
+            pr_info("ready=%d \n", cdata.ready);
             wake_up_interruptible(&chardev_wait);
         }
 }
@@ -212,6 +224,7 @@ chardev_work_max_handler(struct work_struct *w)
         int i;
         int s;
         struct cdev_data *cdev_data_ptr = &cdata;
+        cdev_data_ptr->max = find_max();
         pr_info("chardev work max %u jiffies\n", (unsigned)onesec);
 		
         //for (i=0;i<chw_buffer;i++)
@@ -219,6 +232,7 @@ chardev_work_max_handler(struct work_struct *w)
 		if(atomic_dec_and_test(&cdev_data_ptr->refcount)){
         	pr_info("chardev max work last %u jiffies\n", (unsigned)onesec);
             cdev_data_ptr->ready = 1;
+            pr_info("ready=%d \n", cdata.ready);
             wake_up_interruptible(&chardev_wait);
         }
 }
@@ -226,15 +240,57 @@ static void
 chardev_work_avg_handler(struct work_struct *w)
 {
         struct cdev_data *cdev_data_ptr = &cdata;
+        cdev_data_ptr->avg = find_avg();
         pr_info("chardev work avg %u jiffies\n", (unsigned)onesec);
 		if(atomic_dec_and_test(&cdev_data_ptr->refcount)){
         	pr_info("chardev avg work last %u jiffies\n", (unsigned)onesec);
             cdev_data_ptr->ready = 1;
+            pr_info("ready=%d \n", cdata.ready);
             wake_up_interruptible(&chardev_wait);
         }
 }
 
-
+int find_min(void)
+{
+      int min, count;
+      //cdev_data_ptr->buff;
+      //pr_info("fing_min=%d \n", cdata.buffer[0]);
+      min = cdata.buffer[0];
+      for (count = 1; count < chw_buffer; count++)
+      {
+        if(cdata.buffer[count] < min)
+        {
+            min = cdata.buffer[count];
+        }
+      }
+    return min;
+}
+int find_max(void)
+{
+    int max, count;
+      //cdev_data_ptr->buff;
+      //pr_info("fing_min=%d \n", cdata.buffer[0]);
+      max = cdata.buffer[0];
+      for (count = 1; count < chw_buffer; count++)
+      {
+        if(cdata.buffer[count] > max)
+        {
+            max = cdata.buffer[count];
+        }
+      }
+    return max;
+}
+int find_avg(void)
+{
+    int avg, count;
+    avg = 0;
+      for (count = 1; count < chw_buffer; count++)
+      { 
+            avg += cdata.buffer[count]; 
+      }
+      avg = avg/count;
+    return avg;
+}
 
 
 
@@ -282,10 +338,10 @@ int init_module(void)
         return -ENOMEM;
     }
     //////
-
- 	onesec = msecs_to_jiffies(1000);
-     pr_info("chardev loaded %u jiffies\n", (unsigned)onesec);
-atomic_set(&cdev_data_ptr->refcount, 3);
+/*
+ 	  onesec = msecs_to_jiffies(1000);
+         pr_info("chardev loaded %u jiffies\n", (unsigned)onesec);
+        atomic_set(&cdev_data_ptr->refcount, 3);
         if (!wq)
                 wq = create_workqueue("chardev");
         if (wq) {
@@ -308,7 +364,7 @@ atomic_set(&cdev_data_ptr->refcount, 3);
 			queue_delayed_work(wq_avg, &chardev_work_avg, onesec);
 		}
 
-		
+		*/
 
         return SUCCESS;
 }
@@ -416,6 +472,7 @@ static int device_release(struct inode *inode, struct file *file)
  * read from it.
  */
 char read_buf[3];
+char read_buf_int[3];
 static ssize_t device_read(struct file *filp,   /* see include/linux/fs.h   */
                            char *buffer,        /* buffer to fill with data */
                            size_t length,       /* length of the buffer     */
@@ -453,20 +510,24 @@ static ssize_t device_read(struct file *filp,   /* see include/linux/fs.h   */
 		*/
 		//sprintf(msg, "Entered data is chardev[%d] = %s\n",minor, cdev_data_ptr->buffer);
         //cdata.ready = 1;
-        //sprintf(msg, "Entered data is = %s\n", Wmsg);
+        //sprintf(msg, "%s", Wmsg);
         /*
          * If we're at the end of the message,
          * return 0 signifying end of file
          */
 
         memset(read_buf, 0, sizeof(read_buf));
+        //printk( "open on minor number %d\n", minor);
+        //read_buf_int[0] = cdev_data_ptr->min;
+        //read_buf_int[1] = cdev_data_ptr->max;
+        //read_buf_int[2] = cdev_data_ptr->avg;
         read_buf[0] = cdev_data_ptr->min;
         read_buf[1] = cdev_data_ptr->max;
         read_buf[2] = cdev_data_ptr->avg;
-        cdev_data_ptr->ready = 0;
+        //cdev_data_ptr->ready = 0;
         
         //count = 3;
-        //printk(KERN_NOTICE "hello from %s\n min=%d, max=%d, avg=%d \n",__func__, cdev_data_ptr->min, cdev_data_ptr->max, cdev_data_ptr->avg);
+        printk(KERN_NOTICE "hello from %s\n min=%d, max=%d, avg=%d \n",__func__, cdev_data_ptr->min, cdev_data_ptr->max, cdev_data_ptr->avg);
         count=3;
         //if (count > 3) count = 3; /* copy 3 bytes to the user */
         retval = copy_to_user(buffer, read_buf, count);
@@ -551,6 +612,48 @@ static ssize_t device_write(struct file *filp,
 			get_user(cdev_data_ptr->buffer[i], buff+i);
 			printk( "buffer[%d]=%d\n", i,cdev_data_ptr->buffer[i]);
 		}
+///////////////////////
+        onesec = msecs_to_jiffies(1000);
+        pr_info("chardev loaded %u jiffies\n", (unsigned)onesec);
+        atomic_set(&cdev_data_ptr->refcount, 3);
+        if (!wq)
+                wq = create_workqueue("chardev");
+        if (wq) {
+            queue_delayed_work(wq, &chardev_work, onesec);
+            
+        }
+        if(!wq_min)
+            wq_min= create_workqueue("chardev_min");
+        if(wq_min){
+            queue_delayed_work(wq_min, &chardev_work_min, onesec);
+        }
+        if(!wq_max)
+            wq_max= create_workqueue("chardev_max");
+        if(wq_max){
+            queue_delayed_work(wq_max, &chardev_work_max, onesec);
+        }
+        if(!wq_avg)
+            wq_avg= create_workqueue("chardev_avg");
+        if(wq_avg){
+            queue_delayed_work(wq_avg, &chardev_work_avg, onesec);
+        }
+
+        
+
+////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 	memset(Wmsg[minor], 0, BUF_LEN);
