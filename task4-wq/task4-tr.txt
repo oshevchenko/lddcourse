@@ -1,0 +1,68 @@
+код драйвера який передає вихідні данні виглядає приблизно так
+ memset(read_buf, 0, sizeof(read_buf));
+ read_buf[0] = dev->min;
+ read_buf[1] = dev->max;
+ read_buf[2] = dev->avg;
+ printk(KERN_NOTICE "hello from %s\n min=%d, max=%d, avg=%d",
+  _func_, dev->min, dev->max, dev->avg);
+
+ if (count > 3) count = 3; / copy 3 bytes to the user /
+ retval = copy_to_user(buf, read_buf, count);
+From:
+Oleksandr Shevchenko
+ код драйвера, що забирає вхідні данні приблизно такий
+.................................................
+ if (!dev->buffer) {
+  / allocate the buffer /
+  dev->buffer = kmalloc(chw_buffer, GFP_KERNEL);
+  if (!dev->buffer) {
+   mutex_unlock(&dev->mutex);
+   return -ENOMEM;
+  }
+ }
+
+......................
+ printk("Accept %li bytes to %p from %p\n", (long)count, dev->buffer, buf);
+ if (copy_from_user(dev->buffer, buf, count)) {
+  mutex_unlock (&dev->mutex);
+  return -EFAULT;
+ }
+
+...........................
+From:
+Oleksandr Shevchenko
+ #define CHW_BUFFER 10*1024 / Max length of the message from the device /
+/*
+ * Global variables are declared as static, so are global within the file.
+ */
+
+int chw_buffer =  CHW_BUFFER; / buffer size /
+
+
+module_param(chw_buffer, int, 0);
+From:
+Oleksandr Shevchenko
+ Ще раз по таску.
+У нас має бути тестове завдання щоб відпрацювати на практиці що ми вже знаємо з теорії.
+
+1. Має бути waitqueue, щоб працював poll
+
+2. Має стартувати параллельно 3 таски в  workqueue - мін, макс, середне.
+Тільки один з них, той шо закінчив останнім, має викликати wake_up_interruptible для read waitqueue.
+Згадайте приклад з референс каунтер, який використовує atomic_dec_and_test
+
+3. Подумайте також над синхронізацією (mutex), що б це все корректно працювало для випадку, коли наш драйвер викликається одночасно з багатьох процессів.
+Тобто працював такого типу скрипт
+!/bin/sh
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+sudo ./getopt_long -i /dev/chw &
+echo "done"
+exit 0
