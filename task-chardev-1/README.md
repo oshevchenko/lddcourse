@@ -8,7 +8,7 @@ insmod test_cdev.ko test_int=123
 ls -l /sys/module/test_cdev/parameters
 
     total 0
-    -r-------- 1 root root 4096 сер 31 01:16 test_long
+    -r-------- 1 root root 4096 сер 31 01:16 test_read_only_long
     -rw-rw---- 1 root root 4096 сер 31 01:16 test_short
     -rw-r--r-- 1 root root 4096 сер 31 01:16 test_string
 
@@ -28,3 +28,20 @@ dmesg
 [11143.458669] TEST chardev: goodbye string: abc
 [11143.458669] TEST chardev: module deinit
 
+modinfo
+-------
+```
+modinfo test_cdev.ko
+
+filename:       /full path/.../test_cdev.ko
+description:    Module to test char devices
+license:        GPL
+author:         Orest Hera
+depends:        
+vermagic:       4.9.38-misc-mod SMP mod_unload 
+parm:           test_short:Writable short param (short)
+parm:           test_int:int
+parm:           test_read_only_long:long
+parm:           test_long:Read-only long param
+parm:           test_string:String (charp)
+```

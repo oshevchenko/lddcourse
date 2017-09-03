@@ -12,10 +12,18 @@ static int test_int __initdata = 20;
 static long test_long = 30;
 static char *test_string = "a";
 
+MODULE_AUTHOR("Orest Hera");
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Module to test char devices");
+MODULE_SUPPORTED_DEVICE("test_cdev");
+
 module_param(test_short, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+MODULE_PARM_DESC(test_short, "Writable short param");
 module_param(test_int, int, 0000);
-module_param(test_long, long, S_IRUSR);
+module_param_named(test_read_only_long, test_long, long, S_IRUSR);
+MODULE_PARM_DESC(test_long, "Read-only long param");
 module_param(test_string, charp, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(test_string, "String");
 
 static int __init test_cdev_init(void)
 {
