@@ -25,11 +25,8 @@ static char* in_buf;
 static size_t in_buf_size;
 static size_t in_data_size;
 static atomic_t in_buf_rc;
-//DEFINE_MUTEX(in_buf_mutex);
 
 static char out_buf[3];
-//DEFINE_MUTEX(out_buf_mutex);
-
 
 static void work_func(struct work_struct* wk)
 {
@@ -98,20 +95,11 @@ ssize_t file_read(struct file* filp, char __user* buf, size_t count, loff_t* pos
     if (count + *pos >= sizeof(out_buf))
         count = sizeof(out_buf) - *pos - 1;
 
-    /*retval = mutex_lock_interruptible(&out_buf_mutex);
-    if (retval != 0)
-    {
-        printk(KERN_NOTICE TAG "Mutex lock interrupted\n");
-        return retval; // -EINTR
-    }*/
-
     if (copy_to_user(buf, out_buf, count))
     {
         printk(KERN_NOTICE TAG "Failed copying buffer to user space\n");
         return -ERESTARTSYS;
     }
-
-    //mutex_unlock(&out_buf_mutex);
 
     *pos += count;
     retval = count;
@@ -125,9 +113,6 @@ ssize_t file_read(struct file* filp, char __user* buf, size_t count, loff_t* pos
 ssize_t file_write(struct file* filp, const char __user* buf, size_t count, loff_t* pos)
 {
     size_t copied_bytes;
-    //int retval = mutex_lock_interruptible(&in_buf_mutex);
-    //if (retval != 0)
-    //    return retval;
 
     atomic_add(3, &jobs_left);
 
@@ -160,8 +145,6 @@ ssize_t file_write(struct file* filp, const char __user* buf, size_t count, loff
     {
         printk(KERN_ERR TAG "Work max already in work queue.\n");
     }
-
-    //mutex_unlock(&in_buf_mutex);
 
     return copied_bytes; /* succeed, to avoid retrial */
 }
